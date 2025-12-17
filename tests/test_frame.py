@@ -137,6 +137,22 @@ class TestGroupedOperations:
         result = df[:, {'sum_x': 'sum(x)'}, by('group')]
         assert result.nrow == 2
 
+    def test_n_function_no_args(self):
+        """Test n() function with no arguments returns count."""
+        df = data_frame(group=['A', 'A', 'B', 'B', 'B'], value=[10, 20, 30, 40, 50])
+        result = df[df.value > 15, {'n': 'n()'}, by('group')]
+        assert result.nrow == 2
+        # A has 1 value > 15 (20), B has 3 values > 15 (30, 40, 50)
+        assert result[result.group == 'A', :].n.iloc[0] == 1
+        assert result[result.group == 'B', :].n.iloc[0] == 3
+
+    def test_count_function_no_args(self):
+        """Test count() function with no arguments returns count."""
+        df = data_frame(group=['A', 'A', 'B'], value=[1, 2, 3])
+        result = df[:, {'cnt': 'count()'}, by('group')]
+        assert result[result.group == 'A', :].cnt.iloc[0] == 2
+        assert result[result.group == 'B', :].cnt.iloc[0] == 1
+
 
 class TestColumnExpressions:
     """Tests for column expressions."""

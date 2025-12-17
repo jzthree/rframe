@@ -391,8 +391,16 @@ class RFrame:
             return expr(RFrame(df))
 
         if isinstance(expr, str):
-            # Parse "func(col)" pattern
             import re
+
+            # Check for no-argument functions first: n(), count()
+            match_no_arg = re.match(r'(\w+)\(\s*\)', expr)
+            if match_no_arg:
+                func_name = match_no_arg.group(1)
+                if func_name in ('n', 'count', 'nrow'):
+                    return len(df)
+
+            # Parse "func(col)" pattern
             match = re.match(r'(\w+)\((\w+)\)', expr)
             if match:
                 func_name, col_name = match.groups()
