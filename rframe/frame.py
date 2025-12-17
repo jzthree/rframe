@@ -15,7 +15,7 @@ import warnings
 from .special import (
     N, SD, I, GRP, BY, NGRP,
     _N, _SD, _I, _GRP, _BY, _NGRP,
-    ColRef, BinaryOp, UnaryOp, AssignmentExpr
+    ColRef, BinaryOp, UnaryOp, AssignmentExpr, Exclude
 )
 
 
@@ -214,9 +214,13 @@ class RFrame:
         else:
             raise ValueError(f"Expected 2 or 3 elements, got {len(key)}")
 
-        # Handle 'by' as ByClause object
+        # Handle 'by' - accept ByClause, string, or list of strings directly
         if isinstance(by, ByClause):
             by = by.cols
+        elif isinstance(by, str):
+            by = [by]
+        elif isinstance(by, (list, tuple)) and by and isinstance(by[0], str):
+            by = list(by)
 
         # Process row selection (i)
         df_filtered = self._process_rows(i)
@@ -266,6 +270,11 @@ class RFrame:
             # Could be list of AssignmentExpr
             if all(isinstance(c, AssignmentExpr) for c in j):
                 return self._apply_assignments(df, j)
+
+        # Exclude columns (like R's -c("col1", "col2"))
+        if isinstance(j, Exclude):
+            keep_cols = [c for c in df.columns if c not in j.cols]
+            return RFrame(df[keep_cols])
 
         # Dict for renaming/computing columns
         if isinstance(j, dict):

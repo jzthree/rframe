@@ -48,8 +48,10 @@ from .special import (
     col,    # Column reference
     assign, # := assignment
     delete, # Delete columns
+    exclude, # Exclude columns (like R's -c())
     ColRef,
     AssignmentExpr,
+    Exclude,
 )
 
 # R utility functions
@@ -137,8 +139,10 @@ __all__ = [
     'col',
     'assign',
     'delete',
+    'exclude',
     'ColRef',
     'AssignmentExpr',
+    'Exclude',
 
     # R functions - matching
     'match',

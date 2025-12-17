@@ -355,3 +355,41 @@ def delete(*cols) -> List[AssignmentExpr]:
     >>> dt[:, delete('col1', 'col2')]
     """
     return [AssignmentExpr(c, None) for c in cols]
+
+
+class Exclude:
+    """
+    Represents column exclusion (like R's -c("col1", "col2")).
+
+    Used internally by the exclude() function.
+    """
+
+    def __init__(self, cols: List[str]):
+        self.cols = cols
+
+    def __repr__(self):
+        return f"exclude({', '.join(repr(c) for c in self.cols)})"
+
+
+def exclude(*cols) -> Exclude:
+    """
+    Exclude columns from selection (like R's -c("col1", "col2")).
+
+    Parameters
+    ----------
+    *cols : str
+        Column names to exclude
+
+    Returns
+    -------
+    Exclude
+
+    Examples
+    --------
+    >>> df[:, exclude('x', 'y')]  # All columns except x and y
+    >>> df[:, exclude('temp')]    # All columns except temp
+    """
+    # Flatten if a list is passed
+    if len(cols) == 1 and isinstance(cols[0], (list, tuple)):
+        cols = cols[0]
+    return Exclude(list(cols))

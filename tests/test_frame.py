@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from rframe import (
     RFrame, data_frame, data_table, by,
-    col, assign, delete, N, SD
+    col, assign, delete, exclude, N, SD
 )
 
 
@@ -152,6 +152,38 @@ class TestGroupedOperations:
         result = df[:, {'cnt': 'count()'}, by('group')]
         assert result[result.group == 'A', :].cnt.iloc[0] == 2
         assert result[result.group == 'B', :].cnt.iloc[0] == 1
+
+    def test_by_as_string(self):
+        """Test using string directly for by instead of by()."""
+        df = data_frame(x=[1, 2, 3, 4], group=['a', 'a', 'b', 'b'])
+        result = df[:, N, 'group']  # String instead of by('group')
+        assert result.nrow == 2
+        assert 'N' in result.colnames
+
+    def test_by_as_list(self):
+        """Test using list of strings directly for by."""
+        df = data_frame(x=[1, 2, 3, 4], g1=['a', 'a', 'b', 'b'], g2=['x', 'y', 'x', 'y'])
+        result = df[:, N, ['g1', 'g2']]  # List instead of by('g1', 'g2')
+        assert result.nrow == 4
+
+
+class TestExclude:
+    """Tests for exclude() column selection."""
+
+    def test_exclude_single_column(self):
+        df = data_frame(x=[1, 2], y=[3, 4], z=[5, 6])
+        result = df[:, exclude('y')]
+        assert result.colnames == ['x', 'z']
+
+    def test_exclude_multiple_columns(self):
+        df = data_frame(x=[1, 2], y=[3, 4], z=[5, 6])
+        result = df[:, exclude('x', 'z')]
+        assert result.colnames == ['y']
+
+    def test_exclude_with_list(self):
+        df = data_frame(x=[1, 2], y=[3, 4], z=[5, 6])
+        result = df[:, exclude(['x', 'z'])]
+        assert result.colnames == ['y']
 
 
 class TestColumnExpressions:
