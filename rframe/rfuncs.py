@@ -586,7 +586,8 @@ def cut(x: ArrayLike, breaks: Union[int, ArrayLike], labels: Optional[ArrayLike]
     array(['(0, 5]', '(0, 5]', '(5, 10]', '(10, 20]', '(10, 20]'], dtype=object)
     """
     import pandas as pd
-    return pd.cut(x, breaks, labels=labels, right=right, include_lowest=include_lowest).values
+    result = pd.cut(x, breaks, labels=labels, right=right, include_lowest=include_lowest)
+    return np.asarray(result)
 
 
 def table(*args) -> 'pd.Series':

@@ -276,3 +276,26 @@ class TestIO:
         df = data_frame(x=[1, 2], y=[3, 4])
         d = df.to_dict()
         assert d == {'x': [1, 2], 'y': [3, 4]}
+
+
+class TestStr:
+    """Tests for str() method."""
+
+    def test_str_output(self):
+        df = data_frame(x=[1, 2, 3], y=['a', 'b', 'c'])
+        result = df.str()
+        assert 'RFrame' in result
+        assert '3 obs' in result
+        assert '2 variables' in result
+        assert '$ x' in result
+        assert '$ y' in result
+
+
+class TestSummary:
+    """Tests for summary() method."""
+
+    def test_summary(self):
+        df = data_frame(x=[1, 2, 3, 4, 5], y=[10, 20, 30, 40, 50])
+        result = df.summary()
+        assert 'x' in result.index
+        assert 'mean' in result.columns

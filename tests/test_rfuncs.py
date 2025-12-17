@@ -240,3 +240,58 @@ class TestC:
     def test_c_named(self):
         result = c(a=1, b=2, c=3)
         assert result == {'a': 1, 'b': 2, 'c': 3}
+
+
+class TestTable:
+    """Tests for table() function."""
+
+    def test_table_simple(self):
+        result = table(['a', 'b', 'a', 'c', 'b', 'a'])
+        assert result['a'] == 3
+        assert result['b'] == 2
+        assert result['c'] == 1
+
+    def test_table_numeric(self):
+        result = table([1, 2, 1, 1, 2, 3])
+        assert result[1] == 3
+        assert result[2] == 2
+        assert result[3] == 1
+
+
+class TestRank:
+    """Tests for rank() function."""
+
+    def test_rank_simple(self):
+        result = rank([30, 10, 20])
+        np.testing.assert_array_equal(result, [3., 1., 2.])
+
+    def test_rank_ties_average(self):
+        result = rank([30, 10, 10, 20])
+        np.testing.assert_array_equal(result, [4., 1.5, 1.5, 3.])
+
+    def test_rank_ties_first(self):
+        result = rank([30, 10, 10, 20], ties_method='first')
+        np.testing.assert_array_equal(result, [4., 1., 2., 3.])
+
+
+class TestCut:
+    """Tests for cut() function."""
+
+    def test_cut_basic(self):
+        result = cut([1, 5, 10, 15, 20], breaks=[0, 5, 10, 20])
+        assert str(result[0]) == '(0, 5]'
+        assert str(result[2]) == '(5, 10]'
+        assert str(result[4]) == '(10, 20]'
+
+    def test_cut_with_labels(self):
+        result = cut([1, 5, 15], breaks=[0, 5, 10, 20], labels=['low', 'med', 'high'])
+        np.testing.assert_array_equal(result, ['low', 'low', 'high'])
+
+
+class TestLength:
+    """Tests for length() function."""
+
+    def test_length(self):
+        assert length([1, 2, 3]) == 3
+        assert length([]) == 0
+        assert length('abc') == 3
