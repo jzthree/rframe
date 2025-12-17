@@ -56,6 +56,7 @@ from .special import (
 from .rfuncs import (
     # Core matching/lookup
     match,
+    NOMATCH,  # Sentinel value for no match (max int64)
     which,
     which_max,
     which_min,
@@ -141,6 +142,7 @@ __all__ = [
 
     # R functions - matching
     'match',
+    'NOMATCH',
     'which',
     'which_max',
     'which_min',

@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 from rframe import (
-    match, which, which_max, which_min, isin,
+    match, NOMATCH, which, which_max, which_min, isin,
     seq, seq_len, seq_along, rep, rev,
     unique, duplicated, setdiff, intersect, union,
     head, tail, length, order, rank,
@@ -22,15 +22,24 @@ class TestMatch:
 
     def test_match_with_missing(self):
         result = match([1, 2, 5], [1, 2, 3, 4])
-        np.testing.assert_array_equal(result, [0, 1, -1])
+        np.testing.assert_array_equal(result, [0, 1, NOMATCH])
 
     def test_match_strings(self):
         result = match(['a', 'b', 'z'], ['a', 'b', 'c'])
-        np.testing.assert_array_equal(result, [0, 1, -1])
+        np.testing.assert_array_equal(result, [0, 1, NOMATCH])
 
     def test_match_custom_nomatch(self):
         result = match([1, 5], [1, 2, 3], nomatch=999)
         np.testing.assert_array_equal(result, [0, 999])
+
+    def test_nomatch_causes_index_error(self):
+        """NOMATCH value should raise IndexError if used as index."""
+        table = [10, 20, 30]
+        result = match([10, 99], table)  # 99 not in table
+        assert result[0] == 0  # 10 found at index 0
+        assert result[1] == NOMATCH
+        with pytest.raises(IndexError):
+            _ = table[result[1]]  # Should raise IndexError
 
 
 class TestWhich:

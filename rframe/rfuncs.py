@@ -11,7 +11,11 @@ from typing import Any, Sequence, Optional, Union, List
 ArrayLike = Union[Sequence, np.ndarray, 'pd.Series']
 
 
-def match(x: ArrayLike, table: ArrayLike, nomatch: int = -1) -> np.ndarray:
+# Sentinel value for no match - max int64, will always cause IndexError if used
+NOMATCH = np.iinfo(np.int64).max
+
+
+def match(x: ArrayLike, table: ArrayLike, nomatch: int = None) -> np.ndarray:
     """
     R's match function: returns a vector of positions of first matches.
 
@@ -21,9 +25,10 @@ def match(x: ArrayLike, table: ArrayLike, nomatch: int = -1) -> np.ndarray:
         Values to be matched
     table : array-like
         Values to be matched against
-    nomatch : int, default -1
-        Value to return for non-matches (R uses NA, we use -1 by default)
-        Use None for np.nan
+    nomatch : int, default NOMATCH (max int64)
+        Value to return for non-matches. Default is max int64 which will
+        raise IndexError if used as an index, making no-match cases explicit.
+        Use None for np.nan.
 
     Returns
     -------
@@ -35,18 +40,19 @@ def match(x: ArrayLike, table: ArrayLike, nomatch: int = -1) -> np.ndarray:
     >>> match([1, 2, 3], [3, 2, 1])
     array([2, 1, 0])
     >>> match(['a', 'b', 'z'], ['a', 'b', 'c'])
-    array([ 0,  1, -1])
+    array([0, 1, 9223372036854775807])
     """
     x = np.asarray(x)
     table = np.asarray(table)
 
+    # Use NOMATCH constant if nomatch not specified
+    if nomatch is None:
+        nomatch = NOMATCH
+
     # Create lookup dictionary for O(n) performance
     lookup = {v: i for i, v in enumerate(table)}
 
-    if nomatch is None:
-        result = np.array([lookup.get(v, np.nan) for v in x], dtype=float)
-    else:
-        result = np.array([lookup.get(v, nomatch) for v in x], dtype=int)
+    result = np.array([lookup.get(v, nomatch) for v in x], dtype=np.int64)
 
     return result
 
