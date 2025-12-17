@@ -729,6 +729,182 @@ class RFrame:
                 dfs.append(pd.DataFrame(other))
         return RFrame(pd.concat(dfs, axis=1))
 
+    def melt(self, id_vars=None, measure_vars=None,
+             var_name: str = 'variable', value_name: str = 'value') -> 'RFrame':
+        """
+        Unpivot from wide to long format (like R's melt/pivot_longer).
+
+        Parameters
+        ----------
+        id_vars : str or list, optional
+            Column(s) to use as identifier variables (kept as-is)
+        measure_vars : str or list, optional
+            Column(s) to unpivot. If None, uses all columns not in id_vars
+        var_name : str, default 'variable'
+            Name for the variable column
+        value_name : str, default 'value'
+            Name for the value column
+
+        Returns
+        -------
+        RFrame
+            Long-format data
+
+        Examples
+        --------
+        >>> df = data_frame(id=[1, 2], A=[10, 20], B=[30, 40])
+        >>> df.melt(id_vars='id')
+        #    id variable  value
+        # 0   1        A     10
+        # 1   2        A     20
+        # 2   1        B     30
+        # 3   2        B     40
+
+        >>> df.melt(id_vars='id', var_name='metric', value_name='score')
+        """
+        result = pd.melt(
+            self._df,
+            id_vars=id_vars,
+            value_vars=measure_vars,
+            var_name=var_name,
+            value_name=value_name
+        )
+        return RFrame(result)
+
+    def dcast(self, index, columns, values=None,
+              aggfunc='mean', fill_value=None) -> 'RFrame':
+        """
+        Pivot from long to wide format (like R's dcast/pivot_wider).
+
+        Parameters
+        ----------
+        index : str or list
+            Column(s) to use as row identifiers
+        columns : str
+            Column whose unique values become new column names
+        values : str, optional
+            Column to use for values. If None, uses remaining columns
+        aggfunc : str or callable, default 'mean'
+            Aggregation function if there are duplicate index/column pairs
+            Options: 'mean', 'sum', 'min', 'max', 'first', 'last', 'count'
+        fill_value : scalar, optional
+            Value to use for missing combinations
+
+        Returns
+        -------
+        RFrame
+            Wide-format data
+
+        Examples
+        --------
+        >>> df = data_frame(
+        ...     id=[1, 1, 2, 2],
+        ...     variable=['A', 'B', 'A', 'B'],
+        ...     value=[10, 20, 30, 40]
+        ... )
+        >>> df.dcast(index='id', columns='variable', values='value')
+        #    id   A   B
+        # 0   1  10  20
+        # 1   2  30  40
+
+        >>> # With aggregation
+        >>> df.dcast(index='id', columns='var', values='val', aggfunc='sum')
+        """
+        result = pd.pivot_table(
+            self._df,
+            index=index,
+            columns=columns,
+            values=values,
+            aggfunc=aggfunc,
+            fill_value=fill_value
+        ).reset_index()
+
+        # Flatten column names if MultiIndex
+        if isinstance(result.columns, pd.MultiIndex):
+            result.columns = [
+                '_'.join(str(c) for c in col).strip('_')
+                if isinstance(col, tuple) else col
+                for col in result.columns
+            ]
+        else:
+            # Remove the columns name
+            result.columns.name = None
+
+        return RFrame(result)
+
+    def pivot_longer(self, cols=None, names_to: str = 'name',
+                     values_to: str = 'value', cols_exclude=None) -> 'RFrame':
+        """
+        Pivot from wide to long (tidyr-style alias for melt).
+
+        Parameters
+        ----------
+        cols : str or list, optional
+            Columns to pivot (if None, all non-id columns)
+        names_to : str, default 'name'
+            Name of the new column for variable names
+        values_to : str, default 'value'
+            Name of the new column for values
+        cols_exclude : str or list, optional
+            Columns to exclude from pivoting (used as id_vars)
+
+        Examples
+        --------
+        >>> df.pivot_longer(cols=['A', 'B'], names_to='metric', values_to='score')
+        >>> df.pivot_longer(cols_exclude='id')  # Pivot all except 'id'
+        """
+        if cols_exclude is not None:
+            if isinstance(cols_exclude, str):
+                cols_exclude = [cols_exclude]
+            id_vars = cols_exclude
+            measure_vars = cols
+        else:
+            id_vars = None
+            measure_vars = cols
+
+        return self.melt(
+            id_vars=id_vars,
+            measure_vars=measure_vars,
+            var_name=names_to,
+            value_name=values_to
+        )
+
+    def pivot_wider(self, names_from: str, values_from: str,
+                    id_cols=None, aggfunc='first', fill_value=None) -> 'RFrame':
+        """
+        Pivot from long to wide (tidyr-style alias for dcast).
+
+        Parameters
+        ----------
+        names_from : str
+            Column whose values become new column names
+        values_from : str
+            Column whose values fill the new columns
+        id_cols : str or list, optional
+            Columns that identify each row. If None, uses all other columns
+        aggfunc : str or callable, default 'first'
+            Aggregation function for duplicate entries
+        fill_value : scalar, optional
+            Value for missing combinations
+
+        Examples
+        --------
+        >>> df.pivot_wider(names_from='variable', values_from='value', id_cols='id')
+        """
+        if id_cols is None:
+            # Use all columns except names_from and values_from
+            id_cols = [c for c in self._df.columns if c not in [names_from, values_from]]
+            if len(id_cols) == 0:
+                raise ValueError("No id columns found. Specify id_cols explicitly.")
+
+        return self.dcast(
+            index=id_cols,
+            columns=names_from,
+            values=values_from,
+            aggfunc=aggfunc,
+            fill_value=fill_value
+        )
+
     def head(self, n: int = 6) -> 'RFrame':
         """Return first n rows (R default is 6)."""
         return RFrame(self._df.head(n))

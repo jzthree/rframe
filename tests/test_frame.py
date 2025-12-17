@@ -312,6 +312,60 @@ class TestChaining:
         assert result.x.iloc[0] == 9
 
 
+class TestMeltDcast:
+    """Tests for melt and dcast reshaping."""
+
+    def test_melt_basic(self):
+        df = data_frame(id=[1, 2], A=[10, 20], B=[30, 40])
+        result = df.melt(id_vars='id')
+        assert result.nrow == 4
+        assert 'variable' in result.colnames
+        assert 'value' in result.colnames
+
+    def test_melt_custom_names(self):
+        df = data_frame(id=[1, 2], A=[10, 20], B=[30, 40])
+        result = df.melt(id_vars='id', var_name='metric', value_name='score')
+        assert 'metric' in result.colnames
+        assert 'score' in result.colnames
+
+    def test_dcast_basic(self):
+        df = data_frame(
+            id=[1, 1, 2, 2],
+            variable=['A', 'B', 'A', 'B'],
+            value=[10, 20, 30, 40]
+        )
+        result = df.dcast(index='id', columns='variable', values='value')
+        assert result.nrow == 2
+        assert 'A' in result.colnames
+        assert 'B' in result.colnames
+
+    def test_pivot_longer(self):
+        df = data_frame(id=[1, 2], A=[10, 20], B=[30, 40])
+        result = df.pivot_longer(cols_exclude='id', names_to='var', values_to='val')
+        assert result.nrow == 4
+        assert 'var' in result.colnames
+        assert 'val' in result.colnames
+
+    def test_pivot_wider(self):
+        df = data_frame(
+            id=[1, 1, 2, 2],
+            variable=['A', 'B', 'A', 'B'],
+            value=[10, 20, 30, 40]
+        )
+        result = df.pivot_wider(names_from='variable', values_from='value', id_cols='id')
+        assert result.nrow == 2
+        assert 'A' in result.colnames
+        assert 'B' in result.colnames
+
+    def test_melt_dcast_roundtrip(self):
+        """Melt then dcast should recover original structure."""
+        df = data_frame(id=[1, 2], A=[10, 20], B=[30, 40])
+        melted = df.melt(id_vars='id')
+        recovered = melted.dcast(index='id', columns='variable', values='value')
+        assert recovered.nrow == 2
+        assert set(recovered.colnames) == {'id', 'A', 'B'}
+
+
 class TestIO:
     """Tests for I/O operations."""
 
